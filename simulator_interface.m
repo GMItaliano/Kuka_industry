@@ -478,12 +478,14 @@ classdef simulator_interface < handle
         %Function that allows you to get the position of the target
         function [error,targetPosition]=get_KUKAtarget_position(obj,iTarget)
             error = 0;
-            [res,targetPosition] = obj.vrep.simxGetObjectPosition(obj.clientID,obj.PositionHandle{iTarget},-1,obj.vrep.simx_opmode_buffer);
+            [res,tposition] = obj.vrep.simxGetObjectPosition(obj.clientID,obj.PositionHandle{iTarget},-1,obj.vrep.simx_opmode_buffer);
             if (res ~= obj.vrep.simx_return_ok)
                 disp('ERROR: Failed getting target position information');
                 error = 1;
                 return;
             end
+            targetPosition(1)=tposition(1)*100;      %cm
+            targetPosition(2)=tposition(2)*100;      %cm
         end
 
         %Funtion that allows to know the value of the sensor

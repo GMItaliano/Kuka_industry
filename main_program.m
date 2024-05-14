@@ -266,8 +266,8 @@ while stop==0
     %Direct Kinematics calculation
     %Inverse Kinematics - Send values for joints
     %Write joints.
-    armJoints(1)=0*pi/180;
-    armJoints(2)=90*pi/180;
+    %armJoints(1)=0*pi/180;
+    %armJoints(2)=0*pi/180;
     % armJoints(3)=0*pi/180;
     % armJoints(4)=0*pi/180;
     % armJoints(5)=0*pi/180;
@@ -289,27 +289,28 @@ while stop==0
 
     %% FSM
     
-    [~,targetPosition]=sim.get_KUKAtarget_position(1);
-    disp(targetPosition);
-
+    [~,targetPosition]=sim.get_KUKAtarget_position(3);
+    kuka_pos(1) = x;
+    kuka_pos(2) = y;
     %disp(targetPosition);
-    [orientation, vel_x, vel_y, dist_target] = moveKuka(targetPosition(2), targetPosition(1), y,x, theta_obs, rob_W, rob_L, dist, timestep, phi, 1);
-    
-    wrobot = orientation;
-    vrobot_x = vel_x;
-    vrobto_y = vel_y;
-    if isinf(vel_x)
+    [orientation, dist_target] = moveKuka(targetPosition(1), targetPosition(2), y,x, theta_obs, rob_W, rob_L, dist, timestep, phi);
+    [rotation, v_y, v_x] = Docking_Kuka(orientation, dist_target, 3, kuka_pos, targetPosition);
+    wrobot = rotation;
+    % vrobot_x = v_x;
+    % vrobto_y = v_y;
+    if isinf(v_x)
         vel_x = 0;
     end
+    if(wrobot > 0.3)
+        vrobot_x = 0;
+        vrobto_y = 0; 
+    else
+        vrobot_x = v_x;
+        vrobto_y = v_y;
+    end
     %vrobot_x = vel_x;
-    disp('Orientation');
-    disp(wrobot);
-    
-
-    disp('Distance to target:');
-    disp(dist_target);
-    disp('V_X:');
-    disp(vrobot_x);
+    fprintf("Vx: %d ; Vy: %d ; rot: %d ; dist_target: %d\n", vrobot_x, vrobto_y, wrobot, dist_target)
+    fprintf("KUKA position X: %d, Y: %d\n", x,y);
 
     % if (state_finished)         % If state is finished get new state
     %     disp('NEXT STATE: ');
