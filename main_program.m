@@ -382,11 +382,20 @@ while stop==0
     % end
 
     %error = sim.move_conveyorbelt();     %motion
+    [~,prox_conveyor] = sim.get_conveyor_sensor_value();
+    if prox_conveyor
+        disp("STOPPING Conveyor")
+        error = sim.stop_conveyorbelt();     %stop
+    else 
+        disp("MOVING Conveyor")
+        error = sim.move_conveyorbelt();     %motion
+    end
+
     %error = sim.stop_conveyorbelt();     %stop
-    %if error == 1
-    %    sim.terminate();
-    %    return;
-    %end
+    if error == 1
+       sim.terminate();
+       return;
+    end
 
     m=m+1;
     %----------------------------------------------------------------------

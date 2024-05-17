@@ -515,13 +515,15 @@ classdef simulator_interface < handle
 
         %Function that allows you to put the conveyor belt in motion
         function error = move_conveyorbelt(obj)
-            value = 0.08;
+            value = 0.06;
             error = 0;
             [res] = obj.vrep.simxSetFloatSignal(obj.clientID, 'BeltVelocity', value, obj.vrep.simx_opmode_oneshot);
             if (res ~= obj.vrep.simx_return_ok )
                 disp('ERROR: Failed moving belt!');
                 error = 1;
                 return;
+            else
+                disp('WORK: moving belt!');
             end
         end
 
