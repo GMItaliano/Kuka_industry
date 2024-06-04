@@ -1,4 +1,4 @@
-% Load an example image
+ % Load an example image
 %img = imread('lata_salsichas.png'); 
 img = imread('salsichas2.png');
 %img = imread('green.png'); 

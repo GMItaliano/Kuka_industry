@@ -14,52 +14,94 @@ function [rotation, v_yrobot, v_xrobot] = Docking_Kuka(orientation, distance, ta
     target_orientation = atan2(dy, dx);
     fprintf("\ntarget Orientation: %d ; dx = %d ; dy = %d\n", target_orientation, dx, dy);
 
-    if (distance > 80) 
+    if (distance > 35) 
         rotation = orientation;
         v_yrobot = 0;
         v_xrobot = 50;
-    else
-        %ROTATION
-        disp('Rotation');
-        if(orientation > 0.1 && distance < 40)
-            % switch target_num
-            %     case 1      % conveyor position
-            %         if(dy ~= 0)
-            %             rotation = 0.1; 
-            %         else 
-            %             rotation = 0;
-            %         end
-            %     case 2      % right shelf
-            %         if(dx ~= 0)
-            %             rotation = 0.1; 
-            %         else 
-            %             rotation = 0;
-            %         end
-            %     case 3      % left shlef
-            %         if(dx ~= 0)
-            %             rotation = 0.1; 
-            %         else 
-            %             rotation = 0;
-            %         end
-            %     case 4      % not recognized
-            %         rotation = 0.5;
-            %     case 5      % Idle / charging
-            %         rotation = 0.5;
-            % end
-
-            if (distance < 10)
-                v_xrobot = 0;
-                v_yrobot = 0;
-            else
-                v_xrobot = 10;
-                v_yrobot = 0;
-            end
-        else
-            v_xrobot = 20;
-            v_yrobot = 0;
-            rotation = 0;
+    else %ROTATION
+        disp('Orientation: ');
+        disp(orientation);
+        v_xrobot = 0;
+        v_yrobot = 0;
+        rotation = 0;
+        switch target_num
+            case 1      % conveyor position
+                if(orientation < 0.4 || orientation > 0.6)
+                     rotation = sign(target_orientation - orientation) * 0.5;
+                end
+            case 2      % Idle
+                if(orientation < 0.5 || orientation > 0.7)
+                    rotation =  sign(target_orientation - orientation) * 0.5; 
+                end
+            case 3      % left shlef
+                if(orientation < 0.5 || orientation > 0.7)
+                    rotation =  sign(target_orientation - orientation) * 0.5; 
+                end
+            case 4      % right shlef
+                if(orientation < 0.8 || orientation > 1.06)
+                    rotation =  sign(target_orientation - orientation) * 0.5; 
+                end
+            case 5      % Out Docking
+                rotation = 0;
+                v_xrobot = 50;
         end
-        
-    
+%             if (distance < 10)
+%                 v_xrobot = 0;
+%                 v_yrobot = 0;
+%             else
+%                 v_xrobot = 10;
+%                 v_yrobot = 0;
+%             end
     end
 end
+        
+       %% rotation = sign(target_orientation - orientation) * 0.5;
+%         if(orientation < 0.80 || orientation > 1.06)
+%             rotation = sign(target_orientation - orientation) * 0.5;
+%             disp('rotation: ');
+%             disp(rotation);
+%         end
+%         
+%         disp('Rotation');
+%         if(orientation > 0.1 && distance < 20)
+%             % switch target_num
+%             %     case 1      % conveyor position
+%             %         if(dy ~= 0)
+%             %             rotation = 0.1; 
+%             %         else 
+%             %             rotation = 0;
+%             %         end
+%             %     case 2      % right shelf
+%             %         if(dx ~= 0)
+%             %             rotation = 0.1; 
+%             %         else 
+%             %             rotation = 0;
+%             %         end
+%             %     case 3      % left shlef
+%             %         if(dx ~= 0)
+%             %             rotation = 0.1; 
+%             %         else 
+%             %             rotation = 0;
+%             %         end
+%             %     case 4      % not recognized
+%             %         rotation = 0.5;
+%             %     case 5      % Idle / charging
+%             %         rotation = 0.5;
+%             % end
+% 
+%             if (distance < 10)
+%                 v_xrobot = 0;
+%                 v_yrobot = 0;
+%             else
+%                 v_xrobot = 10;
+%                 v_yrobot = 0;
+%             end
+%         else
+%             v_xrobot = 0;
+%             v_yrobot = 0;
+%             rotation = 0;
+%         end
+        
+    
+%     end
+% end

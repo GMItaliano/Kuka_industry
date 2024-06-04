@@ -9,9 +9,7 @@
 % Do not run simulation!
 %--------------------------------------------------------------------------
 clear
-% need to choose the arm to control 
-%robot_name = 'UR10';
-%robot_name = 'Kuka_LBRiisy';
+
 robot_name = 'LBR_iiwa_14_R820';
 
 % need to choose the gripper/hand
@@ -35,23 +33,12 @@ max_positions = 96;
 max_prox_shelf = 96;
 
 % Creation of a communication class object with the simulator
-% Try to connect to simulator
-% Output:
-% sim - pointer to class simulator_interface
-% error_sim = 1 - impossible to connect to simulator
 [sim,error_sim] = simulator_interface();
 if(error_sim==1)
     return;
 end
 
 %Creation of a communication class object with the manipulator arm
-% Input:
-% sim - pointer to class simulator_interface
-% robot_name - name of arm CoppeliaSim model
-% hand_name - name of hand CoppeliaSim model
-% Output:
-% robot_arm - pointer to class arm_interface
-% error_sim = 1 - impossible to connect to simulator
 [robot_arm,error_man] = arm_interface(sim,robot_name,hand_name);
 if error_man == 1
     sim.terminate();
@@ -65,12 +52,6 @@ if error == 1
     return;
 end
 [error,nJoints,Links,DistanceHand,MinPositionJoint,MaxPositionJoint] = robot_arm.get_RobotCharacteristics();
-%nJoints - number of arm joints.
-%Links - dimensions of the links between the axes of rotation
-%DistanceHand - distance between the tip of the manipulator and the palm of
-% the hand
-%MinPositionJoint - array with minimum position for joint 1-6
-%MaxPositionJoint - array with maximum position for joint 1-6
 if error == 1
     sim.terminate();
     return;
@@ -134,50 +115,96 @@ vel_rear_right = 0.0;   %rad/s
 % Convert longitudinal speed, lateral speed and angular speed into wheel 
 % speed
 [error,vel_front_left,vel_front_right,vel_rear_left,vel_rear_right] = vehicle.Kinematics_vehicle(wrobot, vrobot_y,vrobot_x);
-%Input:
-% wrobot - angular speed
-% vrobot_x - longitudinal speed (cm/s)
-% vrobot_y - lateral speed (cm/s)
-%Output:
-% error = 1 - error in function
-% vel_front_left - front left wheel rotation speed (rad/s)
-% vel_front_right - front right wheel rotation speed (rad/s)
-% vel_rear_left - rear left wheel rotation speed (rad/s)
-% vel_rear_right - rear right wheel rotation speed (rad/s)
 if(error==1)
     return;
 end
 
 % Set wheels speeds
 [error, ~, ~, phi] = vehicle.set_velocity(vel_front_left,vel_front_right,vel_rear_left,vel_rear_right);
-%Input:
-% vel_front_left - rad/s
-% vel_front_right - rad/s
-% vel_rear_left - rad/s
-% vel_rear_right - rad/s
-%Output:
-% robot  (xrobot,yrobot) in cm
-% phirobot - rad
-% error = 1 - error in function
 if(error==1)
     return;
 end
 
-%% OTHER VARIABLES
-%classes
-stock_manager = Stock_Manager;  
-%armKin = FwdInvKinematics;
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%       KUKA TARGETS
+%%%%%%%%%%%%%%%%%%%%%%%%%
 
+tg_land =   1;
+tg_idle =   2;
+tg_right =  3;
+tg_left =   4;
+tg_error =  5;
+
+target_kuka = 0;
+
+[error, tgt_pos] = sim.get_KUKAtarget_position(tg_idle);
+
+if error 
+    fprintf("ERROR GETTING KUKA TARGETS\n");
+    return
+end
+
+sig_reached = 0;
+
+%% OTHER VARIABLES
 %vision
 [~,top_image] = sim.innit_top_Image();
 [~,conv_image] = sim.innit_conv_Image();
 [vision] = vision();
 
-%variables
-recognized = 0;
-state_finished = 0;
-loop_flag = 0;
-state = 'idle';
+[~, arm_pos] = robot_arm.get_robot_position;
+
+%% ARM INITIALIZATION
+% Initialize combined control object
+arm_control = arm_Kinematics(robot_arm, Links, MaxPositionJoint, MinPositionJoint, arm_pos);
+pickNplace = pick_n_place(arm_control, MaxPositionJoint, MinPositionJoint);
+
+theta_steps = 20;
+steps_count = 1;
+steps_count2 = 1;
+
+posi_sig_count = 0;
+posi_sig_max = 0;
+iterations = 0;
+
+current_theta = 0;
+
+%% FSM control 
+
+st_idle =           0;
+st_docking =        1;
+st_registation =    2;
+st_conv_pick =      3;
+st_interm_place =   4;
+st_transit =        5;
+st_interm_pick =    6;
+st_shelf_place =    7;
+
+sig_finished = 1;
+sig_working = 0;
+sig_picked = 0;
+
+curr_st = st_idle;
+next_st = st_idle;
+prev_st = st_idle;
+update_st = 0;
+
+% ---- FSM inside each state
+stage = 0;          
+
+
+%% CAN ORGANIZATION
+% Right :: shelve mushrooms     -> type 1
+% Left  :: shelve sausages      -> type 2
+
+shelf_sig = 0;                  % 0 -> type 2 || 1 -> type 1
+
+stock_manager = Stock_Manager; 
+
+%% Movement flags
+
+move_arm = 0;
+move_kuka = 0;
 
 %% MAIN LOOP
 while stop==0
@@ -229,11 +256,6 @@ while stop==0
 
     % objectPosition - get object position
     %[error,objectPosition]=sim.get_object_position(LATA_SALSICHAS_1);
-    %[error,objectPosition]=sim.get_object_position(LATA_SALSICHAS_2);
-    %[error,objectPosition]=sim.get_object_position(LATA_SALSICHAS_3);
-    %[error,objectPosition]=sim.get_object_position(LATA_COGUMELOS_1);
-    %[error,objectPosition]=sim.get_object_position(LATA_COGUMELOS_2);
-    %[error,objectPosition]=sim.get_object_position(LATA_COGUMELOS_3);
     if error == 1
         sim.terminate();
         return;
@@ -241,11 +263,6 @@ while stop==0
 
     % objectPosition - get target position
     %[error,targetPosition]=sim.get_target_position(PRATELEIRA1_FRENTE1);
-    %[error,targetPosition]=sim.get_target_position(PRATELEIRA1_FRENTE2);
-    %[error,targetPosition]=sim.get_target_position(PRATELEIRA1_FRENTE3);
-    %[error,targetPosition]=sim.get_target_position(PRATELEIRA1_FRENTE4);
-    %[error,targetPosition]=sim.get_target_position(PRATELEIRA1_FRENTE5);
-    % etc
     if error == 1
         sim.terminate();
         return;
@@ -263,22 +280,6 @@ while stop==0
     %----------------------------------------------------------------------
     % --- YOUR CODE --- %
 
-    %Direct Kinematics calculation
-    %Inverse Kinematics - Send values for joints
-    %Write joints.
-    %armJoints(1)=0*pi/180;
-    %armJoints(2)=0*pi/180;
-    % armJoints(3)=0*pi/180;
-    % armJoints(4)=0*pi/180;
-    % armJoints(5)=0*pi/180;
-    % armJoints(6)=0*pi/180;
-    % armJoints(7)=0*pi/180;
-    % error = robot_arm.set_joints(armJoints) %send value for arm Joints in rad
-    if error == 1
-       sim.terminate();
-       return;
-    end
-
     %Functions that allows open/close the hand
     %error = robot_arm.open_hand();     %open
     %error = robot_arm.close_hand();    %close
@@ -287,111 +288,248 @@ while stop==0
     %    return;
     %end
 
+    %% TEST
+    
+    % [~,targetPosition]=sim.get_KUKAtarget_position(3);
+    % kuka_pos(1) = x;
+    % kuka_pos(2) = y;
+    % %disp(targetPosition);
+    % [orientation, dist_target] = moveKuka(targetPosition(1), targetPosition(2), y,x, theta_obs, rob_W, rob_L, dist, timestep, phi);
+    % %[rotation, v_y, v_x] = Docking_Kuka(orientation, dist_target, 3, kuka_pos, targetPosition);
+    % wrobot = rotation;
+    % % vrobot_x = v_x;
+    % % vrobto_y = v_y;
+    % if isinf(v_x)
+    %     vel_x = 0;
+    % end
+    % if(wrobot > 0.3)
+    %     vrobot_x = 0;
+    %     vrobto_y = 0; 
+    % else
+    %     vrobot_x = v_x;
+    %     vrobto_y = v_y;
+    % end
+    % %vrobot_x = vel_x;
+    % fprintf("Vx: %d ; Vy: %d ; rot: %d ; dist_target: %d\n", vrobot_x, vrobto_y, wrobot, dist_target)
+    % fprintf("KUKA position X: %d, Y: %d\n", x,y);
+
     %% FSM
     
-    [~,targetPosition]=sim.get_KUKAtarget_position(3);
-    kuka_pos(1) = x;
-    kuka_pos(2) = y;
-    %disp(targetPosition);
-    [orientation, dist_target] = moveKuka(targetPosition(1), targetPosition(2), y,x, theta_obs, rob_W, rob_L, dist, timestep, phi);
-    [rotation, v_y, v_x] = Docking_Kuka(orientation, dist_target, 3, kuka_pos, targetPosition);
-    wrobot = rotation;
-    % vrobot_x = v_x;
-    % vrobto_y = v_y;
-    if isinf(v_x)
-        vel_x = 0;
-    end
-    if(wrobot > 0.3)
-        vrobot_x = 0;
-        vrobto_y = 0; 
-    else
-        vrobot_x = v_x;
-        vrobto_y = v_y;
-    end
-    %vrobot_x = vel_x;
-    fprintf("Vx: %d ; Vy: %d ; rot: %d ; dist_target: %d\n", vrobot_x, vrobto_y, wrobot, dist_target)
-    fprintf("KUKA position X: %d, Y: %d\n", x,y);
-
-    % if (state_finished)         % If state is finished get new state
-    %     disp('NEXT STATE: ');
-    %     state_finished = 0; 
-    %     state = stock_manager.curr_state(state,recognized);
-    %     disp(state);
-    % else 
-    %     switch state
-    %         case 'idle'                         %Inital state where everything is initialized
-    %             disp('IDLE STATE');
-    %             recognized = 0;
-    %             loop_flag = 0;
-    % 
-    %             [~,targetPosition]=sim.get_KUKAtarget_position(1);
-    % 
-    %             disp(targetPosition);
-    %             [orientation, vel_x, dist_target] = moveKuka(targetPosition(1), targetPosition(2), y,x, theta_obs, rob_W, rob_L, dist, timestep, phi, vrobot_x, 1);
-    % 
-    %             wrobot = orientation;
-    %             vrobot_X = vel_x;
-    %             disp(dist_target);
-    %             state_finished = 1;
-    % 
-    %         case 'start'                        %First state responsible start conveyor
-    %             disp('START STATE');
-    % 
-    % 
-    %         case 'conveyor'                     %Check if conveyor as triggered the proximity sensor (YES)->call vsion and go to next_st (NO)->wait until a can is detected
-    %             disp('CONVEYOR STATE');
-    %             %Function that allows you to put the conveyor belt in motion/stop
-    %             [~,prox_conveyor] = sim.get_conveyor_sensor_value();
-    %             %disp(prox_conveyor);
-    % 
-    %             if(prox_conveyor)
-    %                 disp('Stop Conveyor');
-    % 
-    %                 if (loop_flag == 0)
-    %                     disp('Stop Conveyor');
-    %                     sim.stop_conveyorbelt();
-    %                     disp('Processing Image');
-    %                     [~, conv_img] = sim.get_conv_Image;
-    %                     dominant_color = vision.findDominantColor(conv_img);
-    %                     disp(dominant_color);
-    %                     recognized = strcmp(dominant_color, 'ERROR');
-    %                 end
-    %                 state_finished  = 1;
-    %             else
-    %                sim.move_conveyorbelt();
-    %             end
-    % 
-    %         case 'move_to_conveyor'             %Move KUKA to the position to receive cans from conveyor (if it's in position use arm to pick up a can)
-    %             disp('MOVE TO CONVEYOR STATE');
-    % 
-    %         case 'store_KUKA'                   %State where the picked can will be putted in the staging aread in kuka
-    %             disp('STORE IN KUKA STATE');
-    % 
-    %         case 'move_to_shelf'                %After all positions in KUKA are full go to shelfs
-    %             disp('MOVE TO SHELF STATE');
-    % 
-    %         case 'rack_manager'                 %Check which rack and line is empty and available 
-    %             disp('RACK MANAGER STATE');
-    % 
-    %         case 'store_shelf'                  %Movement to pick a can from the KUKA to the right position in the shelf
-    %             disp('STORE IN SHELF STATE');
-    % 
-    %         case 'not_recognized'               %ERROR case a can is not specified
-    %             disp('CAN NOT RECOGNIZED STATE');
-    %     end
-    % end
-
-    %error = sim.move_conveyorbelt();     %motion
     [~,prox_conveyor] = sim.get_conveyor_sensor_value();
+
+    if update_st 
+        update_st = 0;
+        prev_st = curr_st;
+        curr_st = next_st;
+
+        % Reset Variables
+        stg = 1;
+
+        % counters reset
+        posi_sig_count = 0;
+        iterations = 0;
+        steps_count = 0;
+        
+        % flags for movement 
+        move_kuka = 0;
+        move_arm = 0;
+
+        %signals
+        sig_reached = 0;
+                
+    end
+    
+    switch curr_st
+    
+        case st_idle                    % -> Initial and end state 
+            %% IDLE STATE
+
+            % Move KUKA to Idle Position
+            target_kuka = tg_idle;
+
+            % Move Arm to Idle Position
+
+            [error, theta_sol, all_pos, ee_pos] = pickNplace.idle(armPosition, ReadArmJoints);
+
+            if error ~= 1
+                fprintf("--> ERROR ocurred: #%d\n", error);
+            end
+            
+            posi_sig = arm_control.check_positions(ReadArmJoints, ee_pos, stage);
+            
+            if posi_sig 
+                posi_sig_count = posi_sig_count + 1;
+            end
+
+            % Check conditions
+            if posi_sig_count > 30 && sig_reached
+                
+                update_st = 1;
+                next_st = st_transit;
+            else
+
+                move_kuka = 1;
+                move_arm = 1;
+            end
+
+        case st_registation             % -> Can detection and registation
+
+            % Get Vision & Check Vision
+            if prox_sensor
+                [~, image] = sim.get_conv_Image();
+            end
+            output = pyrunfile("Vision_ML/sai.py", img=image);
+            % Update Value & Register Can 
+
+        case st_conv_pick               % -> Pick from the conveyor 
+            %% CONVEYOR PICK STATE
+            
+            switch stg
+                case 1          % Check prox signal, use vision
+
+                case 2          % intermediate position pick_can
+                case 3          % Pick can 
+                
+            end
+            
+            if sig_finished
+                 % counters reset
+                posi_sig_count = 0;
+                iterations = 0;
+                steps_count = 0;
+                
+                % flags for movement 
+                move_kuka = 0;
+                move_arm = 0;
+                
+                % states update
+                update_st = 1;
+                prev_st = curr_st;
+                next_st = st_interm_place;
+                stg = 1;
+            end
+                
+
+        case st_interm_place            % -> Place can on car
+            %% PLACE STORAGE STATE
+
+
+        case st_transit                 % -> Move from conv <-> shelf
+            %% TRANSIT STATE
+            
+            % check if there are cans in storage or on the hand
+            storage_info = stock_manager.get_storage_info();
+            if storage_info.quantity > 0
+                count = 0;
+                temp = 0;
+
+                %check which type has more cans
+                for i=1 : 9 
+                    if storage_info.type(i) == 1
+                        count = count + 1;
+                    end
+                end
+                
+                temp = storage_info.quantity - count;
+
+                if temp >= 0                            % -> go to Left Shelve
+                    target_kuka = tg_left;
+                    shelf_sig = 1;
+                else                                    % -> go to Right Shelve 
+                    target_kuka = tg_right;
+                    shelf_sig = 0;
+                end
+                
+                next_st = st_interm_pick;
+
+            else
+                
+                %Go to conveyor position
+                target_kuka = tg_land;
+                next_st = st_conv_pick;
+
+            end
+
+            if sig_reached
+                update_st = 1;
+            else
+                move_kuka = 1;
+            end
+
+        case st_interm_pick             % -> Pick from car
+            %% PICK STORAGE STATE
+
+
+        case st_shelf_place             % -> Place can on shelf
+            %% PLACE STORAGE STATE
+
+
+
+    end
+    
+    %% ARM MOVEMENT
+    
+    if move_arm            % move joints 
+        current_theta = current_theta + (theta_sol - current_theta)*gain;
+        robot_arm.set_joints(current_theta);
+    end
+
+    %% KUKA MOVEMENT
+    
+    if (move_kuka && ( curr_st == st_transit || curr_st == st_idle )) && ~sig_reached
+        
+        [~,targetPosition]=sim.get_KUKAtarget_position(target_kuka);
+        kuka_pos(1) = x;
+        kuka_pos(2) = y;
+        [orientation, dist_target] = moveKuka(targetPosition(1), targetPosition(2), y,x, theta_obs, rob_W, rob_L, dist, timestep, phi);
+        [rotation, v_yrobot, v_xrobot] = Docking_Kuka(orientation, dist_target, next_st, targetPosition, kuka_pos );
+
+    else
+        vrobot_x = 0;
+        vrobot_y = 0;
+        sig_reached = 1;
+    end
+
+    %% BUG ARM
+
+    if iterations > 250
+        if curr_st == st_place
+            override = 1;
+        else
+            stage = st_idle;
+            posi_sig_count = 0;
+            sig_finished = 1;
+            sig_working = 0;
+            steps_count = 0;
+            stg = 1;
+            prev_st = curr_st;
+            iterations = 0;
+        end
+    elseif can_count > 6
+        can_count = 0;
+        % fprintf("**END OF PICK and PLACE**\nNo more targets, returning to idle position\n");
+        stage = st_idle;
+        posi_sig_count = 0;
+        sig_finished = 1;
+        sig_working = 0;
+        steps_count = 0;
+        stg = 1;
+        prev_st = curr_st;
+        iterations = 0;
+        [~, theta_sol, all_pos, ee_pos] = pickNplace.idle(armPosition, ReadArmJoints);
+    else
+        override = 0;
+    end
+    
+    %% CONVEYOR CONTROL
     if prox_conveyor
         disp("STOPPING Conveyor")
-        error = sim.stop_conveyorbelt();     %stop
+        error = sim.stop_conveyorbelt();            %stop
     else 
         disp("MOVING Conveyor")
-        error = sim.move_conveyorbelt();     %motion
+        error = sim.move_conveyorbelt();            %motion
     end
 
-    %error = sim.stop_conveyorbelt();     %stop
     if error == 1
        sim.terminate();
        return;

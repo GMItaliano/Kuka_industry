@@ -16,6 +16,8 @@ classdef simulator_interface < handle
         TargetNames             % list of target names
         ObjectHandle            % handle for the object (6 differents)
         ObjectNames             % list of object names
+        IntermPosHandle         % handle for the intermediate positions of cans
+        IntermPosNames
         ConveyorBeltHandle      % handle for the conveyor object
         TopVisionHandle         % handle fot top view of conveyor and rejects table
         ConveyorVisionHandle    % handle for conveyor vision sensor
@@ -30,6 +32,7 @@ classdef simulator_interface < handle
         OBJECT_Number           % Number of objects
         PROXSHELF_Number        % Number of prox sensors in the shelfs
         POSKUKA_Number
+        INTERM_Number
 
     end
 
@@ -105,11 +108,12 @@ classdef simulator_interface < handle
                 end
             end
             
-            obj.POSKUKA_Number = 4;
+            obj.POSKUKA_Number = 5;
             obj.PositionNames{1} = 'Landing';
             obj.PositionNames{2} = 'Idle';
             obj.PositionNames{3} = 'Target1';
             obj.PositionNames{4} = 'Target2';
+            obj.PositionNames{5} = 'Landing_error';
 
 
             %Get Kuka Positions Handle
@@ -375,6 +379,36 @@ classdef simulator_interface < handle
                     return;
                 end
             end
+            
+            %INTERMEDIATE POSITIONS
+            obj.INTERM_Number = 9;
+            obj.IntermPosNames{1} = 'KUKA_pos1';
+            obj.IntermPosNames{2} = 'KUKA_pos2';
+            obj.IntermPosNames{3} = 'KUKA_pos3';
+            obj.IntermPosNames{4} = 'KUKA_pos4';
+            obj.IntermPosNames{5} = 'KUKA_pos5';
+            obj.IntermPosNames{6} = 'KUKA_pos6';
+            obj.IntermPosNames{7} = 'KUKA_pos7';
+            obj.IntermPosNames{8} = 'KUKA_pos8';
+            obj.IntermPosNames{9} = 'KUKA_pos9';
+            
+            % Get position handle
+            for a=1:obj.INTERM_Number
+                interm_name = ['/',obj.IntermPosNames{a}];
+                [res, obj.IntermPosHandle{a}] = obj.vrep.simxGetObjectHandle(obj.clientID, interm_name, obj.vrep.simx_opmode_blocking);
+                if (res ~= obj.vrep.simx_return_ok)
+                    disp('ERROR: Failed getting proximity sensor shelf handle');
+                    disp(a);
+                    error = 1;
+                    return;
+                end
+                [res,~,~,~,~]=obj.vrep.simxReadProximitySensor(obj.clientID, obj.IntermPosHandle{a}, obj.vrep.simx_opmode_streaming);
+                if (res ~= obj.vrep.simx_return_ok && res ~= obj.vrep.simx_return_novalue_flag)
+                    disp('ERROR: Failed getting target position information');
+                    error = 1;
+                    return;
+                end
+            end
 
             %Get ConveyorBelt Handle
             [res, obj.ConveyorBeltHandle] = obj.vrep.simxGetObjectHandle(obj.clientID, 'conveyor', obj.vrep.simx_opmode_blocking);
@@ -498,6 +532,17 @@ classdef simulator_interface < handle
                 return;
             end
         end
+        
+        % -> Get intermediate Position for store cans
+        function [error,store_pos]=get_intermediate_store_position(obj,iObject)
+            error = 0;
+            [res,store_pos] = obj.vrep.simxGetObjectPosition(obj.clientID,obj.IntermPosHandle{iObject},-1,obj.vrep.simx_opmode_buffer);
+            if (res ~= obj.vrep.simx_return_ok)
+                disp('ERROR: Failed getting object position information');
+                error = 1;
+                return;
+            end
+        end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CONVEYOR_FUNCTIONS
         
@@ -522,8 +567,6 @@ classdef simulator_interface < handle
                 disp('ERROR: Failed moving belt!');
                 error = 1;
                 return;
-            else
-                disp('WORK: moving belt!');
             end
         end
 
