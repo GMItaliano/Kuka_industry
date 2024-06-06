@@ -380,8 +380,8 @@ classdef simulator_interface < handle
                 end
             end
             
-            %INTERMEDIATE POSITIONS
-            obj.INTERM_Number = 9;
+             %INTERMEDIATE POSITIONS
+            obj.INTERM_Number = 18;
             obj.IntermPosNames{1} = 'KUKA_pos1';
             obj.IntermPosNames{2} = 'KUKA_pos2';
             obj.IntermPosNames{3} = 'KUKA_pos3';
@@ -391,20 +391,30 @@ classdef simulator_interface < handle
             obj.IntermPosNames{7} = 'KUKA_pos7';
             obj.IntermPosNames{8} = 'KUKA_pos8';
             obj.IntermPosNames{9} = 'KUKA_pos9';
+
+            obj.IntermPosNames{10} = 'KUKA_pos10';
+            obj.IntermPosNames{11} = 'KUKA_pos11';
+            obj.IntermPosNames{12} = 'KUKA_pos12';
+            obj.IntermPosNames{13} = 'KUKA_pos13';
+            obj.IntermPosNames{14} = 'KUKA_pos14';
+            obj.IntermPosNames{15} = 'KUKA_pos15';
+            obj.IntermPosNames{16} = 'KUKA_pos16';
+            obj.IntermPosNames{17} = 'KUKA_pos17';
+            obj.IntermPosNames{18} = 'KUKA_pos18';
             
             % Get position handle
             for a=1:obj.INTERM_Number
                 interm_name = ['/',obj.IntermPosNames{a}];
                 [res, obj.IntermPosHandle{a}] = obj.vrep.simxGetObjectHandle(obj.clientID, interm_name, obj.vrep.simx_opmode_blocking);
                 if (res ~= obj.vrep.simx_return_ok)
-                    disp('ERROR: Failed getting proximity sensor shelf handle');
+                    disp('ERROR: Failed getting Storage KUKA position handle');
                     disp(a);
                     error = 1;
                     return;
                 end
-                [res,~,~,~,~]=obj.vrep.simxReadProximitySensor(obj.clientID, obj.IntermPosHandle{a}, obj.vrep.simx_opmode_streaming);
+                [res,~]=obj.vrep.simxGetObjectPosition(obj.clientID, obj.IntermPosHandle{a}, -1, obj.vrep.simx_opmode_streaming);
                 if (res ~= obj.vrep.simx_return_ok && res ~= obj.vrep.simx_return_novalue_flag)
-                    disp('ERROR: Failed getting target position information');
+                    disp('ERROR: Failed getting Storage KUKA position information');
                     error = 1;
                     return;
                 end

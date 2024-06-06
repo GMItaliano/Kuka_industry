@@ -29,7 +29,7 @@ classdef pick_n_place
             obj.arm_ctrl = arm_ctrl;
             %obj.interface = interface;
             
-            obj.idle_xyz = [ 0.5 ;  -0 ; 1.4 ; 90; 0 ; 0 ;  50 ];
+            obj.idle_xyz = [0 ;  -0.5 ; 0.5 ; 90; 0 ; 0 ;  30 ];
                                    
             obj.place_rot = [0; 0; 0; 90];           %[90; 90; 90; 45];
 
@@ -50,18 +50,20 @@ classdef pick_n_place
         end
         
         %% Main Functions
+        
 
-        function [error, theta_sol, ee_pos] = move2pickNplace(obj, arm_base, pickNplace_xyz, ReadArmJoints, pick, idle, offset)
+        % -> offset = [x,y,z, roll, pitch, yaw, alpha]
+        function [error, theta_sol, ee_pos] = move2pickNplace(obj, arm_base, pickNplace_xyz, ReadArmJoints, pick, offset)
             
             if (pick)                     % -----> Pick <-----
                 
-                ee_pos = pickNplace_xyz + obj.offset_pick;
+                ee_pos = pickNplace_xyz + offset(1:3);
 
-                P_A = obj.arm_ctrl.Copp2Arm(arm_base, 0, pickNplace_xyz + obj.offset_pick);
-                P_des = [P_A' , obj.pick_rot(1:3)'];
+                P_A = obj.arm_ctrl.Copp2Arm(arm_base, 0, ee_pos);
+                P_des = [P_A' , offset(4:6)'];
             
                 % Inverse Kinematic:
-                [error, theta_out] = obj.arm_ctrl.inverse_kinematics(P_des, obj.pick_rot(4,1));
+                [error, theta_out] = obj.arm_ctrl.inverse_kinematics(P_des, offset(7,1));
                 theta_sol = obj.arm_ctrl.solutionSel(theta_out, ReadArmJoints);
             
                 % See if the arm is i the desired position:
@@ -80,31 +82,18 @@ classdef pick_n_place
 
             elseif (~pick)                 % ----> Place <-----
                 
-                if idle         % from idle 2 place
-                    offset = obj.offset_idle2place;
-                    rot = obj.place_rot_i2p;
-                else            % from pick 2 place
-                    offset = obj.offset_pick2place;
-                    rot = obj.place_rot_p2p;
-                end
                 
                 % See if the arm is i the desired position:
                 [hand_position, hand_orientation, ~, ~, ~] = obj.arm_ctrl.direct_kinematics(ReadArmJoints);
                
                 %%%% TENTATIVA PARA CONTROLAR A PONTA
-                ee_pos = pickNplace_xyz + offset;
-                % grip_angle = atan((ee_temp(2) - hand_position(2))/((ee_temp(1) - hand_position(1))));
-                % grip_point = [ee_temp(1) - cos(grip_angle); ee_temp(2) - sin(grip_angle); 0];
-                % ee_pos = ee_temp - grip_point;
-                
-                %rot(2) = sin(grip_angle); % Pitch
-                %rot(3) = cos(grip_angle); % Yaw
+                ee_pos = pickNplace_xyz + offset(1:3);
 
                 P_A = obj.arm_ctrl.Copp2Arm(arm_base, 0, ee_pos);
-                P_des = [P_A' , rot(1:3)'];
+                P_des = [P_A' , offset(4:6)'];
             
                 % Inverse Kinematic:
-                [error, theta_out] = obj.arm_ctrl.inverse_kinematics(P_des, rot(4,1));
+                [error, theta_out] = obj.arm_ctrl.inverse_kinematics(P_des, offset(7,1));
                 theta_sol = obj.arm_ctrl.solutionSel(theta_out, ReadArmJoints);
                 
                 p_C = obj.arm_ctrl.Arm2Copp(arm_base, 0, hand_position);
@@ -130,8 +119,8 @@ classdef pick_n_place
             all_pos = zeros(5,3);
             end_pos = obj.idle_xyz(1:3,1);
 
-            P_A = obj.arm_ctrl.Copp2Arm(arm_base, 0, obj.idle_xyz(1:3,1));
-            P_des = [P_A' , obj.idle_xyz(4:6)'];
+            %P_A = obj.arm_ctrl.Copp2Arm(arm_base, 0, obj.idle_xyz(1:3,1));
+            P_des = [obj.idle_xyz(1:3,1)' , obj.idle_xyz(4:6)'];
         
             % Inverse Kinematic:
             [error, theta_out] = obj.arm_ctrl.inverse_kinematics(P_des, obj.idle_xyz(7,1));
@@ -140,10 +129,10 @@ classdef pick_n_place
             % See if the arm is i the desired position:
             [hand_position, hand_orientation, wrist_pos, elbow_pos, shoulder_pos] = obj.arm_ctrl.direct_kinematics(ReadArmJoints);
             
-            p_C = obj.arm_ctrl.Arm2Copp(arm_base, 0, hand_position);
+            end_pos = obj.arm_ctrl.Arm2Copp(arm_base, 0, hand_position);
         
             disp('Arm to Coppelia:');
-            disp(p_C);
+            disp(end_pos);
             disp('Hand orinentation');
             disp(rad2deg(hand_orientation));
 
@@ -151,7 +140,7 @@ classdef pick_n_place
             all_pos(2,:) = wrist_pos';
             all_pos(3,:) = elbow_pos';
             all_pos(4,:) = shoulder_pos';
-            all_pos(5,:) = p_C';
+            all_pos(5,:) = end_pos';
 
             %theta_sol = theta_out(:,2);
 

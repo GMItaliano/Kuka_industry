@@ -1,4 +1,4 @@
-function [orientation, distance_target, p_avoidance] = moveKuka(XTARGET, YTARGET, y, x, theta_obs, rob_W, rob_L, dist, timestep, phi)
+function [orientation, distance_target, p_avoidance, f_tar] = moveKuka(XTARGET, YTARGET, y, x, theta_obs, rob_W, rob_L, dist, timestep, phi)
     persistent P alpha N d_inter
 
     % Initialize persistent variables only once

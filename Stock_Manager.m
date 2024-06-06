@@ -66,37 +66,40 @@ classdef Stock_Manager
          
         function [num_available_spots, position] = set_can_storage(obj, type)
             % Sets a can in the storage area and returns available spots and position
-
+        
             % Find available positions in the storage area
             available_positions = find(obj.storage == 0);
-
+        
             % Determine the starting position based on the type of can
             if rem(type, 2) == 0  % Even type numbers start at position 9
                 start_position = 9;
             else
                 start_position = 1; % Odd type numbers start at position 1
             end
-
+        
             % Filter available positions to start positions based on type
-            start_positions = available_positions(start_position:9:end);
-
+            start_positions = start_position:9:length(obj.storage);
+            available_start_positions = intersect(available_positions, start_positions);
+        
             % If there are available start positions, set the can in the first one
-            if ~isempty(start_positions)
-                position = start_positions(1);
+            if ~isempty(available_start_positions)
+                position = available_start_positions(1);
                 obj.storage(position) = type;
             else
                 error('No available space in the storage area.');
             end
-            
-            % Calculate number of available spots after placing the can
-            num_available_spots = length(available_positions) - length(start_positions) + 1;
-        end
         
-        function storage_info = get_storage_info(obj)
+            % Calculate number of available spots after placing the can
+            num_available_spots = length(find(obj.storage == 0));
+        end
+
+        
+        function [storage_info, total_cans] = get_storage_info(obj)
             % Returns information about cans in storage (type, position, quantity)
 
             storage_info = struct('type', {}, 'position', {}, 'quantity', {});
-
+            total_cans = 0;
+            
             % Find unique types of cans in storage
             unique_types = unique(obj.storage(obj.storage ~= 0));
 
@@ -108,7 +111,9 @@ classdef Stock_Manager
                 storage_info(i).type = type;
                 storage_info(i).position = positions;
                 storage_info(i).quantity = quantity;
+                total_cans = total_cans + quantity;
             end
+
         end
         
         function set_can_on_shelf(obj, shelf_index, position, type)

@@ -522,21 +522,59 @@ classdef arm_Kinematics
 
         % ---------- COPPELIA TO MATLAB
          function P_A = Copp2Arm(obj, arm_pos, theta, P_C)
-           
-            th = theta - pi/2; 
-            % Trans(x, y, z) and Rot(z, theta)
-            T_AC = [
-                 cos(th),   -sin(th),    0,   -arm_pos(1);
-                 sin(th),    cos(th),    0,   -arm_pos(2);
-                       0,           0,   1,   -arm_pos(3);
-                       0,           0,   0,        1
-                ];
-
-            P_Ch = [P_C;1];
-            P_Ah = T_AC * P_Ch;
+            % COPP2ARM Transforms a point from the object coordinate frame to the arm coordinate frame.
+            % 
+            % P_A = COPP2ARM(obj, arm_pos, theta, P_C) transforms the point P_C 
+            % from the object's coordinate frame to the arm's coordinate frame 
+            % given the arm's position arm_pos and the orientation angle theta.
+            %
+            % Inputs:
+            %   obj - the object instance (not used in this function but part of the method signature)
+            %   arm_pos - a 3-element vector representing the arm's position [x, y, z]
+            %   theta - the orientation angle (in radians) of the arm
+            %   P_C - a 3-element vector representing the point in the object's coordinate frame
+            %
+            % Output:
+            %   P_A - a 3-element vector representing the point in the arm's coordinate frame
+        
+            % Calculate the transformation angle
+            th = theta + pi/2;
             
+            % Debug: Print inputs
+            % disp('Input arm position:');
+            % disp(arm_pos);
+            % disp('Input theta:');
+            % disp(theta);
+            % disp('Input point P_C:');
+            % disp(P_C);
+            
+            % Define the homogeneous transformation matrix (Rotation around z-axis and Translation)
+            T_AC = [
+                cos(th),      sin(th),      0,     -arm_pos(1)*cos(th)-arm_pos(2)*sin(th);
+                -sin(th),     cos(th),      0,     arm_pos(1)*sin(th)-arm_pos(2)*cos(th);
+                0,                  0,      1,     -arm_pos(3);
+                0,                  0,      0,     1
+            ];
+            
+            
+
+            % Debug: Print transformation matrix
+            % disp('Transformation matrix T_AC:');
+            % disp(T_AC);
+            % 
+            % Convert the point to homogeneous coordinates
+            P_Ch = [P_C;1];
+        
+            % Apply the transformation
+            P_Ah = T_AC * P_Ch;
+        
+            % Convert back from homogeneous coordinates to Cartesian coordinates
             P_A = P_Ah(1:3);
-        end  
+            
+            % Debug: Print output
+            % disp('Transformed point P_A:');
+            % disp(P_A);
+        end 
         
         %%%%%%%%%%%%%%%%%%%%%%%%%
         %% Best Solution thetas
@@ -610,11 +648,11 @@ classdef arm_Kinematics
             
             %val = abs(des_ee(1) - curr_pos(1)) > 0.02) || (abs(des_ee(2) - curr_pos(2)) > 0.02) || (abs(des_ee(3) - curr_pos(3)) > 0.02;
             
-            if state == 0
-                treshold = 0.005;
-            elseif state == 1
+            if state == 3 || state == 6               % -> Pick
+                treshold = 0.01;
+            elseif state == 4 || state == 7           % -> Place
                 treshold = 0.02;
-            else
+            else                        % -> Idle
                 treshold = 0.025;
             end
 
