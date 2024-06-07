@@ -96,7 +96,7 @@ classdef simulator_interface < handle
                 object_name = ['/',obj.ObjectNames{a}];
                 [res, obj.ObjectHandle{a}] = obj.vrep.simxGetObjectHandle(obj.clientID, object_name, obj.vrep.simx_opmode_blocking);
                 if (res ~= obj.vrep.simx_return_ok)
-                    disp('ERROR: Failed getting target handle');
+                    disp('ERROR: Failed getting object handle');
                     error = 1;
                     return;
                 end
@@ -244,7 +244,7 @@ classdef simulator_interface < handle
                 target_name = ['/',obj.TargetNames{a}];
                 [res, obj.TargetHandle{a}] = obj.vrep.simxGetObjectHandle(obj.clientID, target_name, obj.vrep.simx_opmode_blocking);
                 if (res ~= obj.vrep.simx_return_ok)
-                    disp('ERROR: Failed getting target handle');
+                    disp('ERROR: Failed getting shelf handle');
                     error = 1;
                     return;
                 end

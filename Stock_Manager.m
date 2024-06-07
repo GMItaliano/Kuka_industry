@@ -25,44 +25,21 @@ classdef Stock_Manager
         cans_right_shelf            %control number of cans in the right shelf
         storage                     %kuka storage 9 cans
         curr_can
+        TARGET_Number
     end
     
     methods
         %% -------- MAIN FUNCTIONS --------
         function obj = Stock_Manager()
             % Initialize all shelves with 0 cans
-            obj.cans_left_shelf = zeros(6,8,6); 
-            obj.cans_right_shelf = zeros(6,8,6);
-            obj.storage = zeros(9,1);           % type 1 -> mushrooms 2 -> sausages
+            obj.cans_left_shelf = zeros(6, 8);
+            obj.cans_right_shelf = zeros(6, 8);
+            obj.storage = zeros(18,1);           % type 1 -> mushrooms 2 -> sausages
+            obj.TARGET_Number = 96;
         end
+
         
-        function [available_positions, total_available_spots] = check_availability(obj, shelf_index)
-          % Define initial variables
-          available_positions = {}; % Cell array to store available positions
-          total_available_spots = 0;
-        
-          if shelf_index == 1 
-            cans_on_shelf = obj.cans_left_shelf;
-          elseif (shelf_index == 2)
-            cans_on_shelf = obj.cans_right_shelf;     
-          end
-          
-          % Iterate through lines and positions on the chosen shelf
-          for line = 1:8
-            for position = 1:6
-              % Determine maximum capacity based on line position
-              max_capacity = get_line_capacity(line);
-        
-              % Check if there's space for a can
-              if cans_on_shelf(shelf_index, line, position) < max_capacity
-                available_positions{end+1} = [shelf_index, line, position]; % Add position to list
-                total_available_spots = total_available_spots + 1;
-              end
-            end
-          end
-        end
-        
-        
+        %% STORAGE MANAGER
          
         function [num_available_spots, position] = set_can_storage(obj, type)
             % Sets a can in the storage area and returns available spots and position
@@ -72,7 +49,7 @@ classdef Stock_Manager
         
             % Determine the starting position based on the type of can
             if rem(type, 2) == 0  % Even type numbers start at position 9
-                start_position = 9;
+                start_position = 18;
             else
                 start_position = 1; % Odd type numbers start at position 1
             end
@@ -116,16 +93,157 @@ classdef Stock_Manager
 
         end
         
-        function set_can_on_shelf(obj, shelf_index, position, type)
-            % Sets a can on the shelf at a certain position if it's available
-            if obj.cans_left_shelf(shelf_index, position(1), position(2)) < get_line_capacity(position(1))
-                obj.cans_left_shelf(shelf_index, position(1), position(2)) = type;
-            elseif obj.cans_right_shelf(shelf_index, position(1), position(2)) < get_line_capacity(position(1))
-                obj.cans_right_shelf(shelf_index, position(1), position(2)) = type;
+        function [error, position, num_remaining] = remove_last_can_storage(obj, type)
+            % Removes the last can of the specified type from storage
+            % and returns its type, position, and remaining count
+        
+            % Find positions of cans of the specified type
+            positions = find(obj.storage == type);
+            if isempty(positions)
+                fprintf('No cans of the specified type in storage\n');
+                error = 0;
             else
-                error('No available space on the shelf at the specified position.');
+                error = 1;
+            end
+        
+            % Get the last position of the specified type
+            position = positions(end);
+            obj.storage(position) = 0;
+            
+            % Calculate the number of remaining cans of the specified type
+            num_remaining = sum(obj.storage == type);
+        end
+
+        %% SHELVES MANAGER
+
+        function [type, position, num_remaining] = remove_last_can_shelf(obj, type)
+            % Removes the last can of the specified type from the shelf (left or right)
+            % and returns its type, position, and remaining count
+        
+            % Find positions of cans of the specified type in both shelves
+            positions_left = find(obj.cans_left_shelf == type);
+            positions_right = find(obj.cans_right_shelf == type);
+        
+            % Determine the last position of the specified type across both shelves
+            if isempty(positions_left) && isempty(positions_right)
+                error('No cans of the specified type in the shelves.');
+            elseif isempty(positions_right)
+                position = positions_left(end);
+                shelf_side = 'left';
+            elseif isempty(positions_left)
+                position = positions_right(end);
+                shelf_side = 'right';
+            else
+                if positions_left(end) > positions_right(end)
+                    position = positions_left(end);
+                    shelf_side = 'left';
+                else
+                    position = positions_right(end);
+                    shelf_side = 'right';
+                end
+            end
+        
+            % Remove the can from the specified position
+            if strcmp(shelf_side, 'left')
+                obj.cans_left_shelf(position) = 0;
+            else
+                obj.cans_right_shelf(position) = 0;
+            end
+        
+            % Calculate the number of remaining cans of the specified type
+            num_remaining_left = sum(obj.cans_left_shelf == type);
+            num_remaining_right = sum(obj.cans_right_shelf == type);
+            num_remaining = num_remaining_left + num_remaining_right;
+        
+            % Adjust position to the 1-96 range
+            if strcmp(shelf_side, 'left')
+                position = position; % Left shelf position is in the range 1-48
+            else
+                position = position + 48; % Right shelf position is in the range 49-96
             end
         end
+        
+
+        function [position, num_remaining] = set_can_shelf(obj, type)
+            % Adds a can of the specified type to the shelf (left or right)
+            % and returns its position and the number of cans remaining that can be added
+            
+            % Check for available positions on both shelves
+            available_positions_left = find(obj.cans_left_shelf == 0, 1, 'first');
+            available_positions_right = find(obj.cans_right_shelf == 0, 1, 'first');
+            
+            if isempty(available_positions_left) && isempty(available_positions_right)
+                error('No available positions on the shelves.');
+            elseif isempty(available_positions_right)
+                position = available_positions_left;
+                shelf_side = 'left';
+            elseif isempty(available_positions_left)
+                position = available_positions_right;
+                shelf_side = 'right';
+            else
+                if available_positions_left(1) < available_positions_right(1)
+                    position = available_positions_left(1);
+                    shelf_side = 'left';
+                else
+                    position = available_positions_right(1);
+                    shelf_side = 'right';
+                end
+            end
+            
+            % Place the can at the identified position
+            if strcmp(shelf_side, 'left')
+                obj.cans_left_shelf(position) = type;
+            else
+                obj.cans_right_shelf(position) = type;
+            end
+            
+            % Calculate the number of remaining cans that can be added
+            remaining_positions_left = sum(obj.cans_left_shelf == 0);
+            remaining_positions_right = sum(obj.cans_right_shelf == 0);
+            num_remaining = remaining_positions_left + remaining_positions_right;
+            
+            % Adjust position to the 1-96 range
+            if strcmp(shelf_side, 'left')
+                position = position; % Left shelf position is in the range 1-48
+            else
+                position = position + 48; % Right shelf position is in the range 49-96
+            end
+        end
+
+        
+
+        function shelf_info = get_shelf_info(obj, shelf_index)
+            % Returns information about cans on the shelf (type, position, quantity)
+            if shelf_index == 1
+                cans_on_shelf = obj.cans_left_shelf;
+            elseif shelf_index == 2
+                cans_on_shelf = obj.cans_right_shelf;
+            else
+                error('Invalid shelf index');
+            end
+
+            shelf_info = struct('type', {}, 'position', {}, 'quantity', {});
+
+            unique_types = unique(cans_on_shelf);
+            unique_types = unique_types(unique_types ~= 0);
+
+            for i = 1:length(unique_types)
+                type = unique_types(i);
+                positions = [];
+
+                for line = 1:8
+                    for rack = 1:6
+                        if cans_on_shelf(rack, line) == type
+                            positions = [positions; rack, line];
+                        end
+                    end
+                end
+                quantity = size(positions, 1);
+                shelf_info(i).type = type;
+                shelf_info(i).position = positions;
+                shelf_info(i).quantity = quantity;
+            end
+        end                
 
         %% -------- HELPER FUNCTIONS --------
 

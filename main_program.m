@@ -205,12 +205,12 @@ stock_manager = Stock_Manager;
 
 % Tests     [ object_number , can_type, final position]
 can_order = [
-            LATA_COGUMELOS_1 , 1    , 80;       % {80} = 'R4_R8'
-            LATA_COGUMELOS_2 , 2    , 79;       % {79} = 'R4_L7'
-            LATA_SALSICHAS_1 , 2    , 24;       % {24} = 'R4_L8'
-            LATA_COGUMELOS_3 , 1    , 78;
-            LATA_SALSICHAS_2 , 1    , 23;
-            LATA_SALSICHAS_3 , 2    , 22
+            LATA_COGUMELOS_1 , 1    ;       % {80} = 'R4_R8'
+            LATA_COGUMELOS_2 , 2    ;       % {79} = 'R4_L7'
+            LATA_SALSICHAS_1 , 2    ;       % {24} = 'R4_L8'
+            LATA_COGUMELOS_3 , 1    ;
+            LATA_SALSICHAS_2 , 1    ;
+            LATA_SALSICHAS_3 , 2    
             ];
 
 can_count = 1;
@@ -359,27 +359,32 @@ while stop==0
 
         case st_conv_pick               % -> Pick from the conveyor 
             %% CONVEYOR PICK STATE
-            
-            offset = [0.15; -0.01; 0.05; 90;  80 ; 0; 0];       % -> IMPORTANT OFFSET FOR THE ARM
 
             switch stg
                 
                 case 1      % get vesion and specify the type
                     % -> ADD CONTROL LOGIC FOR VISION
-                    [~,objectPosition]=sim.get_object_position(LATA_COGUMELOS_1);
+                    can_position = can_order(can_count,1);
+                    can_type = can_order(can_count,2);
 
+                    [~,objectPosition]=sim.get_object_position(can_position);
+
+                    offset = [0.19; -0.01; 0.0; 90;  30 ; 0; 0];       % -> IMPORTANT OFFSET FOR THE ARM
+                    
                     stg = stg + 1;
                 case 2
                     stg_1_pos = [objectPosition(1)+0.1; objectPosition(2); 1.4 ];
-                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, 1, offset);
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, offset, phi);
                     gain = 0.1;
                 case 3
-                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, objectPosition', ReadArmJoints, 1, offset);    
+                    offset(5) = 90;
+                    stg_2_pos = [objectPosition(1); objectPosition(2); objectPosition(3)];
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_2_pos, ReadArmJoints, offset, phi);    
                     gain = 0.1;
                 case 4
                     val_hand = robot_arm.close_hand();
                 case 5 
-                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, 1, offset); 
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, offset, phi); 
             end
     
             if error ~= 1
@@ -396,7 +401,7 @@ while stop==0
                 posi_sig_count = posi_sig_count + 1;
                
                 if posi_sig_count > 30
-                    if sig_finished && stg > 3
+                    if sig_finished && stg > 5
                     % states update
                     update_st = 1;
                     next_st = st_interm_place;
@@ -418,7 +423,7 @@ while stop==0
             switch stg
                 
                 case 1      % get target_position
-                    offset_ps = [-0.2; 0; 0.1; 90; -90; 0; 0];      % offset pick storage
+                    offset_ps = [-0.2; 0; 0.1; 90; -90; 0; 0];      % offset place storage
 
                     if can_type == 1    
                         [num_available_spots, position] = stock_manager.set_can_storage(1);
@@ -430,16 +435,17 @@ while stop==0
 
                     stg = stg + 1;
                 case 2
-                    stg_1_pos = [objectPosition(1); objectPosition(2); 1.3];
-                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, 1, 0, offset_ps);
-                    gain = 0.1;
+                     stg_1_pos = [storage_Position(1); storage_Position(2); 1.1];
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, offset_ps, phi);
+                    gain = 0.05;
                 case 3
-                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, objectPosition', ReadArmJoints, 1, 0, offset_ps);    
-                    gain = 0.1;
+                    % offset_ps(5) = -90;
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, storage_Position', ReadArmJoints, offset_ps, phi);    
+                    gain = 0.05;
                 case 4
-                    val_hand = robot_arm.close_hand();
+                    val_hand = robot_arm.open_hand();
                 case 5 
-                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, 1, 0, offset_ps); 
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, offset_ps, phi); 
             end
     
             if error ~= 1
@@ -452,13 +458,14 @@ while stop==0
             posi_sig = arm_control.check_positions(ReadArmJoints, ee_pos, stage);
                            
 
-            if posi_sig_count 
+            if posi_sig 
                 posi_sig_count = posi_sig_count + 1;
                
                 if posi_sig_count > 30
-                    if sig_finished && stg > 3
+                    if sig_finished && stg > 5
                     % states update
                     update_st = 1;
+                    can_count = can_count + 1;
                     if prox_sig && num_available_spots > 0
                         next_st = st_conv_pick;
                     else
@@ -483,7 +490,7 @@ while stop==0
             
             % check if there are cans in storage or on the hand
             [storage_info, storage_cans] = stock_manager.get_storage_info();
-            if storage_cans > 0
+            if storage_cans > 0 
                 count = 0;
                 temp = 0;
 
@@ -496,7 +503,7 @@ while stop==0
                 
                 temp = storage_info.quantity - count;
 
-                if temp >= 0                            % -> go to Left Shelve
+                if temp >= 2                            % -> go to Left Shelve
                     target_kuka = tg_left;
                     can_type = 1;
                 else                                    % -> go to Right Shelve 
@@ -523,15 +530,36 @@ while stop==0
         case st_interm_pick             % -> Pick from car
             %% PICK STORAGE STATE
             
-            offset = [0; 0; 0; 0; 0; 0; 0];
 
             switch stg
-                case 1
+                case 1      % get target_position
+                    offset = [-0.2; 0; 0.1; 90; -90; 0; 0];      % offset pick storage
+                    
+                    [error, position, num_remaining_storage] = stock_manager.remove_last_can_storage(can_type);
+
+                    [~,storage_Position]=sim.get_intermediate_store_position(position);
+
+                    stg = stg + 1;
                 case 2
+                     stg_1_pos = [storage_Position(1); storage_Position(2); 1.1];
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, offset, phi);
+                    gain = 0.05;
                 case 3
+                    % offset_ps(5) = -90;
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, storage_Position', ReadArmJoints, offset, phi);    
+                    gain = 0.05;
                 case 4
+                    val_hand = robot_arm.close_hand();
+                case 5 
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, offset, phi);
             end
             
+            if error ~= 1
+            
+                fprintf("--> ERROR ocurred: #%d\n", error);
+    
+            end
+
             %[error_prox, prox_sig] = sim.get_conveyor_sensor_value;
             posi_sig = arm_control.check_positions(ReadArmJoints, ee_pos, stage);
                            
@@ -540,7 +568,7 @@ while stop==0
                 posi_sig_count = posi_sig_count + 1;
                
                 if posi_sig_count > 30
-                    if sig_finished && stg > 3
+                    if sig_finished && stg > 5
                     % states update
                     update_st = 1;
                     next_st = st_shelf_place;
@@ -560,27 +588,58 @@ while stop==0
         case st_shelf_place             % -> Place can on shelf
             %% PLACE STORAGE STATE
 
-            offset = [0; 0; 0; 0; 0; 0; 0];
+           offset = [0; -0.1; 0.07; 90; -90; 90; 0];
 
             switch stg
-                case 1
+                case 1     
+                    
+                    % SHELF LOGIC AND CAN LOGIC
+                    [position, num_remaining_shelf] = stock_manager.set_can_shelf(can_type);
+                    [~,targetPosition] = sim.get_target_position(position);
+
+                    offset = [0.19; -0.01; 0.0; 90;  30 ; 0; 0];       % -> IMPORTANT OFFSET FOR THE ARM
+                    
+                    stg = stg + 1;
                 case 2
+                    stg_1_pos = [targetPosition(1); 0.35; targetPosition(3)+0.17];
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, offset, phi);
+                    gain = 0.05;
                 case 3
+                    offset(5) = 90;
+                    stg_2_pos = [targetPosition(1);  targetPosition(2) ; targetPosition(3)+0.1];
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_2_pos, ReadArmJoints, offset, phi);    
+                    gain = 0.05;
                 case 4
+                    val_hand = robot_arm.close_hand();
+                case 5 
+                    gain = 0.2;
+                    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, offset, phi); 
             end
             
             %[error_prox, prox_sig] = sim.get_conveyor_sensor_value;
             posi_sig = arm_control.check_positions(ReadArmJoints, ee_pos, stage);
                            
+            if error ~= 1
+            
+                fprintf("--> ERROR ocurred: #%d\n", error);
+    
+            end
 
-            if posi_sig_count 
+            if posi_sig_count || override
                 posi_sig_count = posi_sig_count + 1;
                
-                if posi_sig_count > 30
-                    if sig_finished && stg > 3
+                if posi_sig_count > 30 || override
+                    if sig_finished && stg > 5
                     % states update
                     update_st = 1;
                     
+                    if num_remaining_storage > 0
+                        next_st = st_interm_pick;
+                    else
+                        next_st = st_transit;
+                    end
+
+                    else
                     stg = stg + 1;
                     posi_sig_count = 1;
                     iterations = 0;
