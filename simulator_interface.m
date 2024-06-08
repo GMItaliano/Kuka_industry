@@ -605,7 +605,7 @@ classdef simulator_interface < handle
         %Function for proximity sensor on the conveyor
         function [error,detectionState]=get_conveyor_sensor_value(obj)
             error = 0;
-            [res,detectionState,~,~,~] = obj.vrep.simxReadProximitySensor(obj.clientID, obj.ConveyorProxHandle, obj.vrep.simx_opmode_buffer);
+            [res,detectionState,a,b,c] = obj.vrep.simxReadProximitySensor(obj.clientID, obj.ConveyorProxHandle, obj.vrep.simx_opmode_buffer);
             if (res ~= obj.vrep.simx_return_ok)
                 disp('ERROR: Failed getting object position information');
                 error = 1;
