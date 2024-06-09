@@ -126,8 +126,8 @@ classdef arm_Kinematics
             hand_position = Thand(1:3,4);
             hand_orientation = Hand_orientation_rad;
 
-            disp('-- DEBUG -- DK --- hand XYZ');
-            disp(hand_position);
+            % disp('-- DEBUG -- DK --- hand XYZ');
+            % disp(hand_position);
 
         end
         
@@ -355,8 +355,8 @@ classdef arm_Kinematics
                             theta_7;
                             ];
             
-            disp('-- DEBUG: -- IK --- Theta: ');
-            disp(rad2deg(joints_theta));
+            % disp('-- DEBUG: -- IK --- Theta: ');
+            % disp(rad2deg(joints_theta));
             error = 1;
         end
         

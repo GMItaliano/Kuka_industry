@@ -123,7 +123,7 @@ classdef Stock_Manager
                 
                     des_position = position - step;
                     obj.storage(des_position) = 0;
-                    return
+                    break;
                 
                 end
            
@@ -195,30 +195,30 @@ classdef Stock_Manager
             
             % add a can to the first position available
             if type == 2
-                start_position = 49;
+                initial_position = 49;
                 shelf = obj.cans_right_shelf;
             else 
-                start_position = 1;
+                initial_position = 1;
                 shelf = obj.cans_left_shelf;
             end
 
             % start putting can in position 
-            start_position = start_position + 16;       % Rack 3 Line 1
+            start_position = initial_position + 17;       % Rack 3 Line 2
             end_position = start_position + 11;         % Rack 4 Line 4
             
-            position = start_position;
             count = 1;
 
-            while position > 0 &&  position < end_position
+            while count > 0 &&  count < 48
             
-                if shelf(position) == 0
-                    des_position = position;
-                    shelf(position) = 1;
-                    return
+                if shelf(count) == 0
+                    shelf(count) = 1;
+                    break;
                 end
-                position = position + 1;
+
                 count = count + 1;
             end
+            
+            des_position = start_position + count;
 
             num_remaining = 11 - count;
 

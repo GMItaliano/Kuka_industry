@@ -71,10 +71,10 @@ classdef pick_n_place
             
             %ee_pos = p_C;
 
-            disp('Arm to Coppelia:');
-            disp(p_C);
-            disp('Hand orinentation');
-            disp(rad2deg(hand_orientation))
+            % disp('Arm to Coppelia:');
+            % disp(p_C);
+            % disp('Hand orinentation');
+            % disp(rad2deg(hand_orientation))
 
             %theta_sol = theta_out(:,2);
 
@@ -97,10 +97,10 @@ classdef pick_n_place
             
             end_pos = obj.arm_ctrl.Arm2Copp(arm_base, 0, hand_position);
         
-            disp('Arm to Coppelia:');
-            disp(end_pos);
-            disp('Hand orinentation');
-            disp(rad2deg(hand_orientation));
+            % disp('Arm to Coppelia:');
+            % disp(end_pos);
+            % disp('Hand orinentation');
+            % disp(rad2deg(hand_orientation));
 
             all_pos(1,:) = hand_position';
             all_pos(2,:) = wrist_pos';
