@@ -294,21 +294,21 @@ while stop==0
     sim.trigger_simulation();
     %----------------------------------------------------------------------
     % --- YOUR CODE --- %
-    offset_ps = [-0.2; 0; 0.1; 90; -90; 0; 0];
-    
-    % position = can_order(can_count,2);
-    % [error,targetPosition]=sim.get_intermediate_store_position(position);
-
-    position_test = [-2.2, -4.20, 0.7];
-
-    gain = 0.2;
-    [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, position_test', ReadArmJoints, 0, offset_ps);
-    move_arm = 1;
-    
-    if move_arm            % move joints 
-        current_theta = current_theta + (theta_sol - current_theta)*gain;
-        robot_arm.set_joints(current_theta);
-    end
+    % offset_ps = [-0.2; 0; 0.1; 90; -90; 0; 0];
+    % 
+    % % position = can_order(can_count,2);
+    % % [error,targetPosition]=sim.get_intermediate_store_position(position);
+    % 
+    % position_test = [-2.2, -4.20, 0.7];
+    % 
+    % gain = 0.2;
+    % [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, position_test', ReadArmJoints, 0, offset_ps);
+    % move_arm = 1;
+    % 
+    % if move_arm            % move joints 
+    %     current_theta = current_theta + (theta_sol - current_theta)*gain;
+    %     robot_arm.set_joints(current_theta);
+    % end
 
     % if prox_conveyor
     %     disp("STOPPING Conveyor")

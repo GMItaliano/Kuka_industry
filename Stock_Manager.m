@@ -20,7 +20,7 @@
 %% -------- CODE --------
 
 classdef Stock_Manager
-    properties
+    properties (Access = private)
         cans_left_shelf             %control number of cans in the left shelf
         cans_right_shelf            %control number of cans in the right shelf
         storage                     %kuka storage 9 cans
@@ -32,86 +32,111 @@ classdef Stock_Manager
         %% -------- MAIN FUNCTIONS --------
         function obj = Stock_Manager()
             % Initialize all shelves with 0 cans
-            obj.cans_left_shelf = zeros(6, 8);
-            obj.cans_right_shelf = zeros(6, 8);
-            obj.storage = zeros(18,1);           % type 1 -> mushrooms 2 -> sausages
+            obj.cans_left_shelf = zeros(1, 48);
+            obj.cans_right_shelf = zeros(1, 48);
+            obj.storage = zeros(1,18);           % type 1 -> mushrooms 2 -> sausages
             obj.TARGET_Number = 96;
+            obj.save_to_mat('stock_manager.mat');
         end
 
         
         %% STORAGE MANAGER
          
-        function [num_available_spots, position] = set_can_storage(obj, type)
+        function [num_available_spots, des_position] = set_can_storage(obj, type)
             % Sets a can in the storage area and returns available spots and position
-        
-            % Find available positions in the storage area
-            available_positions = find(obj.storage == 0);
-        
+            
+            obj = obj.load_from_mat('stock_manager.mat');
+
             % Determine the starting position based on the type of can
             if rem(type, 2) == 0  % Even type numbers start at position 9
                 start_position = 18;
+                end_pos = 1;
+                step = -1;
             else
                 start_position = 1; % Odd type numbers start at position 1
+                end_pos = 18;
+                step = 1;
             end
-        
-            % Filter available positions to start positions based on type
-            start_positions = start_position:9:length(obj.storage);
-            available_start_positions = intersect(available_positions, start_positions);
-        
-            % If there are available start positions, set the can in the first one
-            if ~isempty(available_start_positions)
-                position = available_start_positions(1);
-                obj.storage(position) = type;
-            else
-                error('No available space in the storage area.');
+            
+            position = start_position;
+
+            while  position >= 1 || position <= 18
+            
+                if obj.storage(position) == 0
+                
+                    obj.storage(position) = type;
+                    des_position = position;
+                    break;
+                
+                end
+                position = position + step;
             end
-        
-            % Calculate number of available spots after placing the can
-            num_available_spots = length(find(obj.storage == 0));
+
+            num_available_spots = 18 - sum(obj.storage == type);
+
+            if position > 18 || position < 1
+                num_available_spots = 0;
+                fprintf("KUKA :: Storage FULL\n");
+            end
+
+            obj.save_to_mat('stock_manager.mat');
         end
 
         
-        function [storage_info, total_cans] = get_storage_info(obj)
+        function [storage_type, total_cans] = get_storage_info(obj)
             % Returns information about cans in storage (type, position, quantity)
-
-            storage_info = struct('type', {}, 'position', {}, 'quantity', {});
-            total_cans = 0;
             
-            % Find unique types of cans in storage
-            unique_types = unique(obj.storage(obj.storage ~= 0));
+            obj = obj.load_from_mat('stock_manager.mat');
+
+            total_cans = 0;
+            storage_type = zeros(18,1);
 
             % Iterate over unique types and gather information
-            for i = 1:length(unique_types)
-                type = unique_types(i);
-                positions = find(obj.storage == type);
-                quantity = length(positions);
-                storage_info(i).type = type;
-                storage_info(i).position = positions;
-                storage_info(i).quantity = quantity;
-                total_cans = total_cans + quantity;
+            for i = 1:length(obj.storage)
+                storage_type(i) = obj.storage(i);
+                if obj.storage(i) ~= 0
+                    total_cans = total_cans + 1;
+                end
             end
 
         end
         
-        function [error, position, num_remaining] = remove_last_can_storage(obj, type)
-            % Removes the last can of the specified type from storage
-            % and returns its type, position, and remaining count
-        
-            % Find positions of cans of the specified type
-            positions = find(obj.storage == type);
-            if isempty(positions)
-                fprintf('No cans of the specified type in storage\n');
-                error = 0;
-            else
-                error = 1;
-            end
-        
-            % Get the last position of the specified type
-            position = positions(end);
-            obj.storage(position) = 0;
+        function [des_position, num_remaining] = remove_last_can_storage(obj, type)
+            % Removes the last can in the storage area and returns remaining spots and position to be taken
             
-            % Calculate the number of remaining cans of the specified type
+            obj = obj.load_from_mat('stock_manager.mat');
+
+            % Determine the starting position based on the type of can
+            if rem(type, 2) == 0  % Even type numbers start at position 9
+                start_position = 18;
+                step = -1;
+            else
+                start_position = 1; % Odd type numbers start at position 1
+                step = 1;
+            end
+            
+            position = start_position;
+
+            while  position >= 1 || position <= 18
+            
+                if obj.storage(position) == 0
+                
+                    des_position = position - step;
+                    obj.storage(des_position) = 0;
+                    return
+                
+                end
+           
+                position = position + step;
+            end
+            
             num_remaining = sum(obj.storage == type);
+
+            if num_remaining == 0 
+                fprintf("KUKA :: Storage EMPTY\n");
+            end
+
+            obj.save_to_mat('stock_manager.mat');
         end
 
         %% SHELVES MANAGER
@@ -164,50 +189,41 @@ classdef Stock_Manager
         end
         
 
-        function [position, num_remaining] = set_can_shelf(obj, type)
-            % Adds a can of the specified type to the shelf (left or right)
-            % and returns its position and the number of cans remaining that can be added
+        function [des_position, num_remaining] = set_can_shelf(obj, type)
             
-            % Check for available positions on both shelves
-            available_positions_left = find(obj.cans_left_shelf == 0, 1, 'first');
-            available_positions_right = find(obj.cans_right_shelf == 0, 1, 'first');
+            obj = obj.load_from_mat('stock_manager.mat');
             
-            if isempty(available_positions_left) && isempty(available_positions_right)
-                error('No available positions on the shelves.');
-            elseif isempty(available_positions_right)
-                position = available_positions_left;
-                shelf_side = 'left';
-            elseif isempty(available_positions_left)
-                position = available_positions_right;
-                shelf_side = 'right';
-            else
-                if available_positions_left(1) < available_positions_right(1)
-                    position = available_positions_left(1);
-                    shelf_side = 'left';
-                else
-                    position = available_positions_right(1);
-                    shelf_side = 'right';
+            % add a can to the first position available
+            if type == 2
+                start_position = 49;
+                shelf = obj.cans_right_shelf;
+            else 
+                start_position = 1;
+                shelf = obj.cans_left_shelf;
+            end
+
+            % start putting can in position 
+            start_position = start_position + 16;       % Rack 3 Line 1
+            end_position = start_position + 11;         % Rack 4 Line 4
+            
+            position = start_position;
+            count = 1;
+
+            while position > 0 &&  position < end_position
+            
+                if shelf(position) == 0
+                    des_position = position;
+                    shelf(position) = 1;
+                    return
                 end
+                position = position + 1;
+                count = count + 1;
             end
-            
-            % Place the can at the identified position
-            if strcmp(shelf_side, 'left')
-                obj.cans_left_shelf(position) = type;
-            else
-                obj.cans_right_shelf(position) = type;
-            end
-            
-            % Calculate the number of remaining cans that can be added
-            remaining_positions_left = sum(obj.cans_left_shelf == 0);
-            remaining_positions_right = sum(obj.cans_right_shelf == 0);
-            num_remaining = remaining_positions_left + remaining_positions_right;
-            
-            % Adjust position to the 1-96 range
-            if strcmp(shelf_side, 'left')
-                position = position; % Left shelf position is in the range 1-48
-            else
-                position = position + 48; % Right shelf position is in the range 49-96
-            end
+
+            num_remaining = 11 - count;
+
+            obj.save_to_mat('stock_manager.mat');
+
         end
 
         
@@ -245,14 +261,25 @@ classdef Stock_Manager
             end
         end                
 
-        %% -------- HELPER FUNCTIONS --------
-
-        function capacity = get_line_capacity(line_index)
-          if line_index == 1 || line_index == 8
-            capacity = 5;
-          else
-            capacity = 6;
-          end
+        %% SAVE AND LOAD FUNCTIONS
+        function save_to_mat(obj, filename)
+            % Saves the current state of the Stock_Manager object to a .mat file
+            cans_left_shelf = obj.cans_left_shelf;
+            cans_right_shelf = obj.cans_right_shelf;
+            storage = obj.storage;
+            curr_can = obj.curr_can;
+            TARGET_Number = obj.TARGET_Number;
+            save(filename, 'cans_left_shelf', 'cans_right_shelf', 'storage', 'curr_can', 'TARGET_Number');
+        end
+        
+        function obj = load_from_mat(obj, filename)
+            % Loads the state of the Stock_Manager object from a .mat file
+            data = load(filename);
+            obj.cans_left_shelf = data.cans_left_shelf;
+            obj.cans_right_shelf = data.cans_right_shelf;
+            obj.storage = data.storage;
+            obj.curr_can = data.curr_can;
+            obj.TARGET_Number = data.TARGET_Number;
         end
     end
 end

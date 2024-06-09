@@ -651,7 +651,7 @@ classdef arm_Kinematics
             if state == 3 || state == 6               % -> Pick
                 treshold = 0.01;
             elseif state == 4 || state == 7           % -> Place
-                treshold = 0.02;
+                treshold = 0.01;
             else                        % -> Idle
                 treshold = 0.025;
             end
