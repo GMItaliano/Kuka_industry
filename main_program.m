@@ -367,8 +367,12 @@ while stop==0
                 
                 case 1      % get vesion and specify the type
                     % -> ADD CONTROL LOGIC FOR VISION 
-                     can_position = can_order(can_count,1);
-                    can_type = can_order(can_count,2);
+                    if prox_conveyor
+                        [~, img] = sim.get_conv_Image();
+                        [~, can_type] = vision.findDominantColor(img);
+                    end 
+                    can_position = can_order(can_count,1);
+                    %can_type = can_order(can_count,2);
 
                     [~,objectPosition]=sim.get_object_position(can_position);
                     

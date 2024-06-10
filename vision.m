@@ -174,7 +174,7 @@ classdef vision
     
         end
 
-        function dominantColor = findDominantColor(obj, image)
+        function [dominantColor, value] = findDominantColor(obj, image)
             % Define color ranges for red, green, and blue
             lowerRed = [70, 20, 23];
             upperRed = [75, 25, 30];
@@ -209,18 +209,18 @@ classdef vision
             Gfilter = filter2(g_filter, greenChannelFiltered);
             Bfilter = filter2(g_filter, blueChannelFiltered);
             
-            figure(1)  
-            subplot(2, 2, 1);
-            imshow(Rfilter);
-            title('Red Filtered');
-            
-            subplot(2, 2, 2);
-            imshow(Gfilter);
-            title('Yellow Filtered');
-            
-            subplot(2, 2, 3);
-            imshow(Bfilter);
-            title('Blue Filtered');
+            % figure(1)  
+            % subplot(2, 2, 1);
+            % imshow(Rfilter);
+            % title('Red Filtered');
+            % 
+            % subplot(2, 2, 2);
+            % imshow(Gfilter);
+            % title('Yellow Filtered');
+            % 
+            % subplot(2, 2, 3);
+            % imshow(Bfilter);
+            % title('Blue Filtered');
 
             % Count the number of pixels in each filtered image
             redPixels = sum(redMask(:));
@@ -236,18 +236,22 @@ classdef vision
                         disp('Dominant Color: Red ');
                         disp(redPixels);
                         dominantColor = 'Salsichas';
+                        value = 1;
                     case 2
                         disp('Dominant Color: Yellow ');
                         disp(yellowPixels);
                         dominantColor = 'Salsichas';
+                        value = 1;
                     case 3
                         disp('Dominant Color: Blue ');
                         disp(bluePixels);
                         dominantColor = 'Cogumelos';
+                        value = 2;
                 end
             else
                 disp('NO color found');
                 dominantColor = 'NOT RECOGNIZED';
+                value = 0;
             end
 
         end
