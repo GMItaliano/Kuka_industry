@@ -433,7 +433,13 @@ while stop==0
             switch stg
                 
                 case 1      % get target_position
-                    offset_ps = [-0.175; 0.0; 0.07; 90; -90; 0; 0];      % offset place storage
+                      offset_ps = [-0.175; 0.0; 0.07; 90; -90; 0; 0];      % offset place storage
+
+                      if can_type == 2
+                          y_offset = 0;
+                      else
+                          y_offset = 0.05;
+                      end
 
                       [num_available_spots, position] = stock_manager.set_can_storage(can_type);
 
@@ -441,7 +447,7 @@ while stop==0
 
                     stg = stg + 1;
                 case 2
-                    stg_1_pos = [storage_Position(1)-0.05; storage_Position(2); 1.1];
+                    stg_1_pos = [storage_Position(1)-0.05; storage_Position(2)+y_offset; 1.1];
                     [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, offset_ps, phi);
                     gain = 0.03;
                 case 3
@@ -548,6 +554,12 @@ while stop==0
             switch stg
                 case 1      % get target_position
                     offset = [-0.17; 0.0; 0.06; 90; -90; 0; 0];      % offset pick storage
+
+                    if can_type == 2
+                        x_offset1 = -0.27;
+                    else
+                        x_offset1 = 0.27;
+                    end
                     
                     [position, num_remaining_storage] = stock_manager.remove_last_can_storage(can_type);
 
@@ -555,7 +567,7 @@ while stop==0
 
                     stg = stg + 1;
                 case 2
-                     stg_1_pos = [storage_Position(1)-0.1; storage_Position(2); 1.1];
+                     stg_1_pos = [storage_Position(1)+x_offset1; storage_Position(2); 1.1];
                     [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, offset, phi);
                     gain = 0.03;
                 case 3
@@ -600,7 +612,7 @@ while stop==0
             end
 
         case st_shelf_place             % -> Place can on shelf
-            %% PLACE STORAGE STATE
+            %% PLACE SHELF STATE
 
            % offset = [0; -0.1; 0.07; 90; -90; 90; 0];
 
@@ -610,17 +622,25 @@ while stop==0
                     % SHELF LOGIC AND CAN LOGIC
                     [position, num_remaining_shelf] = stock_manager.set_can_shelf(can_type);
                     [~,targetPosition] = sim.get_target_position(position);
+                    
+                    if can_type == 2
+                        y_offset2 = -0.1;
+                        y_offset1 = -0.3;
+                    else
+                        y_offset1 = 0.3;
+                        y_offset2 = 0.1;
+                    end
 
-                    offset = [0.19; -0.01; 0.0; 90; -90 ; 0; 0];       % -> IMPORTANT OFFSET FOR THE ARM
+                    offset = [0; 0; 0.07; 90; -90 ; 90; 0];       % -> IMPORTANT OFFSET FOR THE ARM
                     
                     stg = stg + 1;
                 case 2
-                    stg_1_pos = [targetPosition(1); targetPosition(2)-0.2; targetPosition(3)+0.17];
+                    stg_1_pos = [targetPosition(1); targetPosition(2)+y_offset1; targetPosition(3)+0.17];
                     [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_1_pos , ReadArmJoints, offset, phi);
                     gain = 0.05;
                 case 3
                     % offset(5) = 90;
-                    stg_2_pos = [targetPosition(1);  targetPosition(2) ; targetPosition(3)+0.1];
+                    stg_2_pos = [targetPosition(1);  targetPosition(2)+y_offset2 ; targetPosition(3)+0.5];
                     [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_2_pos, ReadArmJoints, offset, phi);    
                     gain = 0.05;
                 case 4
@@ -712,6 +732,8 @@ while stop==0
 
                 if target_kuka == tg_left 
                     offset_tgx = -50;
+                    vrobot_x = (x-targetPosition(1))*0.5;
+                    vrobot_y = (y-targetPosition(2))*0.5;
                 elseif target_kuka == tg_idle
                     offset_tgx = 0;
                 else

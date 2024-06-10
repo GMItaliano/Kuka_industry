@@ -222,6 +222,12 @@ classdef Stock_Manager
 
             num_remaining = 11 - count;
 
+            if type == 2
+                obj.cans_right_shelf = shelf;
+            else 
+                obj.cans_left_shelf = shelf;
+            end
+
             obj.save_to_mat('stock_manager.mat');
 
         end
