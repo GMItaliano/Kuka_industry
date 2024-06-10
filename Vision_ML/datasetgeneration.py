@@ -8,7 +8,7 @@ import cv2
 
 # The rest of the code remains the same
 # Path to the dataset
-data_dir = '/home/afonso/Desktop/SAIcontrolo'
+data_dir = 'C:/Users/gugal/Desktop/Github/Kuka_industry/Vision_ML'
 
 # Parameters
 img_height, img_width = 224, 224

@@ -30,9 +30,7 @@ def process_image(img):
 def perform_inference(image_path):
     # Load the image
     image = cv2.imread(image_path)
-    if image is None:
-        raise FileNotFoundError(f"Image at path '{image_path}' could not be loaded. Please check the file path.")
-    
+
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     
     # Convert image to tensor of type uint8
@@ -65,13 +63,14 @@ def draw_boxes(image, boxes, classes, scores, min_score=0.5):
             end_point = (int(xmax * width), int(ymax * height))
             color = (255, 0, 0)
             thickness = 2
-            image = cv2.rectangle(image, start_point, end_point, color, thickness)
+            #image = cv2.rectangle(image, start_point, end_point, color, thickness)
             label = f"Class {int(class_id)}: {score:.2f}"
-            image = cv2.putText(image, label, start_point, cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
+            print(f"Class {int(class_id)}: {score:.2f}")
+            #image = cv2.putText(image, label, start_point, cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
     return image
 
 # Path to your image
-image = img
+image_path = 'C:/Users/gugal/Desktop/Github/Kuka_industry/Vision_ML/test.png'
 
 try:
     # Perform inference
@@ -79,6 +78,9 @@ try:
 
     # Draw boxes on the image
     image_with_boxes = draw_boxes(image, boxes, classes, scores)
+
+    print(f"Predicted class: {classes}")
+    print(f"Predicted score: {scores}")
 
     # Display the image
     plt.figure(figsize=(10, 10))

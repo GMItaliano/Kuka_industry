@@ -1,3 +1,4 @@
+import sys
 import tensorflow as tf
 import numpy as np
 import cv2
@@ -20,7 +21,7 @@ def preprocess_image(image_path):
     return image_array / 255.0
 
 # Path to a new image for classification
-new_image_path = '/home/afonso/Desktop/SAIcontrolo/CanTypeB/image2.png'
+new_image_path = 'C:/Users/gugal/Desktop/Github/Kuka_industry/Vision_ML/received_image.png'
 
 image_array = preprocess_image(new_image_path)
 
