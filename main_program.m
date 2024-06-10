@@ -559,7 +559,9 @@ while stop==0
                         x_offset1 = -0.1;
                     else
                         x_offset1 = 0.1;
+                        offset(1) = abs(offset(1));
                     end
+                    % x_offset1 = -0.1;
                     
                     [position, num_remaining_storage] = stock_manager.remove_last_can_storage(can_type);
 
