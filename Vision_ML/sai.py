@@ -63,14 +63,14 @@ def draw_boxes(image, boxes, classes, scores, min_score=0.5):
             end_point = (int(xmax * width), int(ymax * height))
             color = (255, 0, 0)
             thickness = 2
-            #image = cv2.rectangle(image, start_point, end_point, color, thickness)
+            image = cv2.rectangle(image, start_point, end_point, color, thickness)
             label = f"Class {int(class_id)}: {score:.2f}"
             print(f"Class {int(class_id)}: {score:.2f}")
-            #image = cv2.putText(image, label, start_point, cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
+            image = cv2.putText(image, label, start_point, cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
     return image
 
 # Path to your image
-image_path = 'C:/Users/gugal/Desktop/Github/Kuka_industry/Vision_ML/test.png'
+image_path = 'C:/Users/gugal/Desktop/Github/Kuka_industry/Vision_ML/top.png'
 
 try:
     # Perform inference
