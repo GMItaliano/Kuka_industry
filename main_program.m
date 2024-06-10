@@ -438,7 +438,7 @@ while stop==0
                       if can_type == 2
                           y_offset = 0;
                       else
-                          y_offset = 0.05;
+                          y_offset = 0.005;
                       end
 
                       [num_available_spots, position] = stock_manager.set_can_storage(can_type);
@@ -556,9 +556,9 @@ while stop==0
                     offset = [-0.17; 0.0; 0.06; 90; -90; 0; 0];      % offset pick storage
 
                     if can_type == 2
-                        x_offset1 = -0.27;
+                        x_offset1 = -0.1;
                     else
-                        x_offset1 = 0.27;
+                        x_offset1 = 0.1;
                     end
                     
                     [position, num_remaining_storage] = stock_manager.remove_last_can_storage(can_type);
@@ -631,6 +631,9 @@ while stop==0
                         y_offset2 = 0.1;
                     end
 
+                    % y_offset2 = -0.1;
+                    % y_offset1 = -0.3;
+
                     offset = [0; 0; 0.07; 90; -90 ; 90; 0];       % -> IMPORTANT OFFSET FOR THE ARM
                     
                     stg = stg + 1;
@@ -640,7 +643,7 @@ while stop==0
                     gain = 0.05;
                 case 3
                     % offset(5) = 90;
-                    stg_2_pos = [targetPosition(1);  targetPosition(2)+y_offset2 ; targetPosition(3)+0.5];
+                    stg_2_pos = [targetPosition(1);  targetPosition(2)+y_offset2 ; targetPosition(3)+0.05];
                     [error, theta_sol, ee_pos] = pickNplace.move2pickNplace(armPosition, stg_2_pos, ReadArmJoints, offset, phi);    
                     gain = 0.05;
                 case 4
