@@ -1,2 +1,2 @@
-# Kuka_industry
-This repository is a project to simulate a working environment using the Kuka robot and Kuka robot arm (7dof)
+# (WiP)
+This branch was a test to implement a ML model in python on Matlab but is not finished
