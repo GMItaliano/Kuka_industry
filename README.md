@@ -1,6 +1,6 @@
 # Kuka Industry 🚀
 
-Simulate a working environment using the KUKA robot with 7 degrees of freedom (7DoF). This project features scripts for controlling the robot, implementing vision-based tasks, and managing industrial operations.
+Simulate a working environment using the KUKA robot with 7 degrees of freedom (7DoF) on top of the kuka mobile platform. This project features scripts for controlling the robot, implementing vision-based tasks, and managing industrial operations.
 
 ## Project Overview
 - **Objective:** Simulate a KUKA robot performing tasks in an industrial environment.
