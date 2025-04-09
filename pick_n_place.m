@@ -26,9 +26,7 @@ classdef pick_n_place
         %% Constructor
         function obj = pick_n_place(arm_ctrl, max_rot, min_rot)
         
-            obj.arm_ctrl = arm_ctrl;
-            %obj.interface = interface;
-            
+            obj.arm_ctrl = arm_ctrl;            
             obj.idle_xyz = [0 ;  -0.5 ; 0.5 ; 90; 0 ; 0 ;  30 ];
                                    
             obj.place_rot = [0; 0; 0; 90];           %[90; 90; 90; 45];
@@ -68,15 +66,6 @@ classdef pick_n_place
             [hand_position, hand_orientation, ~, ~, ~] = obj.arm_ctrl.direct_kinematics(theta_out(:,2));
             
             p_C = obj.arm_ctrl.Arm2Copp(arm_base, angle, hand_position);
-            
-            %ee_pos = p_C;
-
-            % disp('Arm to Coppelia:');
-            % disp(p_C);
-            % disp('Hand orinentation');
-            % disp(rad2deg(hand_orientation))
-
-            %theta_sol = theta_out(:,2);
 
         end
 
@@ -96,19 +85,12 @@ classdef pick_n_place
             [hand_position, hand_orientation, wrist_pos, elbow_pos, shoulder_pos] = obj.arm_ctrl.direct_kinematics(ReadArmJoints);
             
             end_pos = obj.arm_ctrl.Arm2Copp(arm_base, 0, hand_position);
-        
-            % disp('Arm to Coppelia:');
-            % disp(end_pos);
-            % disp('Hand orinentation');
-            % disp(rad2deg(hand_orientation));
 
             all_pos(1,:) = hand_position';
             all_pos(2,:) = wrist_pos';
             all_pos(3,:) = elbow_pos';
             all_pos(4,:) = shoulder_pos';
             all_pos(5,:) = end_pos';
-
-            %theta_sol = theta_out(:,2);
 
         end 
 
